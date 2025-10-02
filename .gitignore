@@ -1,3 +1,4 @@
+# Existing entries
 .DS_Store
 */.DS_Store
 */*/.DS_Store
@@ -8,3 +9,12 @@ results/*/
 results/*/*.json
 datasets/gpkgs/
 datasets/gpkgs/*.gpkg
+
+# Newly added entries
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+.env
+.vscode/
