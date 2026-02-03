@@ -1,4 +1,4 @@
-# messages.py
+import json
 
 class BaseMessage:
     msg_class: str = "BaseMessage"
@@ -18,15 +18,6 @@ class BaseMessage:
         ):
         """
         BaseMessage holds common attributes for all message types.
-        
-        Args:
-            role (str): The role for the message (e.g., 'user', 'assistant', 'tool').
-            content (str, optional): The message text.
-            prompt_tokens (int, optional): The number of input tokens.
-            cached_tokens (int, optional): The number of cached tokens.
-            completion_tokens (int, optional): The number of output tokens.
-            tool_calls (list, optional): A list of ToolCall objects, if any.
-            source (str, optional): A source identifier (if applicable).
         """
         self.role = role
         self.content = content
@@ -36,9 +27,11 @@ class BaseMessage:
         self.completion_tokens = completion_tokens
         self.total_tokens = total_tokens
         self.time_elapsed = time_elapsed
-        self.tool_calls = tool_calls  # Expected to be a list of ToolCall objects
+        self.tool_calls = tool_calls
         self.source = source
         self.msg_class = self.__class__.msg_class
+        # This attribute will be set on ToolResponseMessage objects
+        self.tool_call_id = None
 
     def __str__(self):
         parts = [f"Role: {self.role}"]
@@ -72,7 +65,7 @@ class BaseMessage:
             "tool_calls": [tc.to_dict() for tc in self.tool_calls] if self.tool_calls else None,
         }
         if self.message is not None:
-            result["message"] = str(self.message)  # Customize if your 'message' has its own serialization.
+            result["message"] = str(self.message)
         return result
 
     def to_json(self) -> str:
@@ -81,11 +74,7 @@ class BaseMessage:
 
 class TextMessage(BaseMessage):
     msg_class: str = "TextMessage"
-
     def __init__(self, role, content="", **kwargs):
-        """
-        TextMessage represents a plain text message, e.g. user input to LLM
-        """
         super().__init__(role, content, **kwargs)
     
     def __str__(self):
@@ -94,11 +83,7 @@ class TextMessage(BaseMessage):
 
 class ChatResponseMessage(BaseMessage):
     msg_class: str = "ChatResponseMessage"
-
     def __init__(self, role, content="", **kwargs):
-        """
-        ChatResponseMessage represents a plain text chat response.
-        """
         super().__init__(role, content, **kwargs)
     
     def __str__(self):
@@ -107,11 +92,7 @@ class ChatResponseMessage(BaseMessage):
 
 class ToolCallRequestMessage(BaseMessage):
     msg_class: str = "ToolCallRequestMessage"
-    
     def __init__(self, role, content="", **kwargs):
-        """
-        ToolCallRequestMessage is used when the assistant is requesting a tool call.
-        """
         super().__init__(role, content, **kwargs)
     
     def __str__(self):
@@ -120,11 +101,7 @@ class ToolCallRequestMessage(BaseMessage):
 
 class UserProgramToolCallRequest(BaseMessage):
     msg_class: str = "UserProgramToolCallRequest"
-    
     def __init__(self, role, content="", **kwargs):
-        """
-        UserProgramToolCallRequest is used when the user script is explicitly requesting a tool call.
-        """
         super().__init__(role, content, **kwargs)
     
     def __str__(self):
@@ -133,11 +110,7 @@ class UserProgramToolCallRequest(BaseMessage):
 
 class ToolResponseMessage(BaseMessage):
     msg_class: str = "ToolResponseMessage"
-    
     def __init__(self, role, content="", **kwargs):
-        """
-        ToolResponseMessage is used when a tool returns a response.
-        """
         super().__init__(role, content, **kwargs)
     
     def __str__(self):
@@ -146,11 +119,7 @@ class ToolResponseMessage(BaseMessage):
 
 class HandoffMessage(BaseMessage):
     msg_class: str = "HandoffMessage"
-    
     def __init__(self, role, content="", **kwargs):
-        """
-        HandoffMessage is used when a tool returns an Agent to hand execution off to.
-        """
         super().__init__(role, content, **kwargs)
     
     def __str__(self):
@@ -159,15 +128,6 @@ class HandoffMessage(BaseMessage):
 
 class ToolCall:
     def __init__(self, id, name, arguments, tool_type):
-        """
-        Represents a single tool call.
-        
-        Args:
-            id (str): An identifier for the tool call.
-            name (str): The name of the tool.
-            arguments (str): A string (or JSON) representation of the arguments.
-            tool_type (str): The type of tool, e.g., "function".
-        """
         self.id = id
         self.name = name
         self.arguments = arguments
@@ -177,111 +137,87 @@ class ToolCall:
         return f"ToolCall(id={self.id}, name={self.name}, arguments={self.arguments}, type={self.tool_type})"
 
     def to_dict(self) -> dict:
-        return {
-            "type": "ToolCall",
-            "id": self.id,
-            "name": self.name,
-            "arguments": self.arguments,
-            "tool_type": self.tool_type
-        }
+        # This format is compatible with OpenAI/Groq tool_calls
+        if self.tool_type == 'function':
+            return {
+                "id": self.id,
+                "type": "function",
+                "function": {"name": self.name, "arguments": self.arguments},
+            }
+        return vars(self)
 
     def to_json(self) -> str:
         return json.dumps(self.to_dict())
 
 class Messages:
     def __init__(self):
-        """
-        Holds a list of messages for a conversation.
-        """
         self.messages = []
 
     def add_message(self, message: BaseMessage):
-        """
-        Add a message to the conversation.
-        
-        Args:
-            message (BaseMessage): A message instance.
-        """
         self.messages.append(message)
 
     def reset_messages(self):
-        """
-        Clears all stored messages.
-        """
         self.messages = []
 
     def __len__(self):
         return len(self.messages)
 
     def __iter__(self):
-        """Allow iteration over the underlying messages list."""
         return iter(self.messages)
     
     def __getitem__(self, index):
-        """Allow slicing/indexing on the underlying messages list."""
         return self.messages[index]
 
     def to_list(self):
         return self.messages
 
-    def _get_client_messages(self):
-        """
-        Returns the conversation messages in a format suitable for LLM API calls.
-        For example, it may loop through self.messages and convert each to a dict.
-        (Placeholder implementation.)
-        """
-        api_messages = []
-        for msg in self.messages:
-            # Example conversion; extend this as needed for function calling, token info, etc.
-            api_messages.append({
-                "role": msg.role,
-                "content": msg.content
-                # Add token counts or tool_call details as needed.
-            })
-        return api_messages
-
+    # --- THIS FUNCTION IS THE CORE OF THE FIX ---
     def get_openai_client_messages(self):
         """
-        Returns the conversation messages in a format suitable for GPT API calls.
-        For example, it may loop through messages (TextMessage, ChatResponseMessage) 
-        and convert each to the {'role': ..., } format OpenAI API expects.
+        Returns messages in a format suitable for OpenAI/Groq API calls.
+        This now correctly handles roles, content, and tool calls.
         """
         api_messages = []
         for msg in self.messages:
-            if msg.message is not None:
-                api_msg = msg.message
-            else:
-                api_msg = {
-                    "role": msg.role,
-                    "content": msg.content
-                }
+            # Start with the basic message structure
+            api_msg = {"role": msg.role}
+
+            # Add content only if it exists
+            if msg.content:
+                api_msg["content"] = str(msg.content)
+
+            # If it's a tool response, it MUST have the tool_call_id
+            if isinstance(msg, ToolResponseMessage) and msg.tool_call_id:
+                api_msg['tool_call_id'] = msg.tool_call_id
+            
+            # If it's an assistant's request for a tool call, format it correctly
+            elif isinstance(msg, ToolCallRequestMessage) and msg.tool_calls:
+                api_msg['tool_calls'] = [tc.to_dict() for tc in msg.tool_calls]
+                # Per API standards, content can be null when tool_calls are present
+                if not msg.content:
+                    api_msg['content'] = None
+
+            # Ensure content is not None for user messages, even if empty
+            if api_msg.get("role") == "user" and "content" not in api_msg:
+                api_msg["content"] = ""
+
             api_messages.append(api_msg)
         return api_messages
-
 
     def get_client_messages(self, client_class):
         """
         Wrapper function. Returns the conversation messages based on the client type.
         """
-        if client_class == "OpenAIClient":
-            return self.get_openai_client_messages()
-        elif client_class == "OllamaClient":
+        # --- ADDED GroqClient TO THIS LIST ---
+        if client_class in ["OpenAIClient", "OllamaClient", "GroqClient"]:
             return self.get_openai_client_messages()
         elif client_class == "VLLMClient":
             raise ValueError(f"Unsupported client: {client_class}")
         else:
-            return self._get_client_messages()        
+            return self.get_openai_client_messages() # Fallback to default
 
     def __str__(self):
         return "\n".join(str(m) for m in self.messages)
 
     def to_list_dict(self, start=0, end=None):
-        """
-        Converts a slice of stored messages to a list of dictionaries.
-        Args:
-            start (int): The starting index for slicing.
-            end (int, optional): The ending index for slicing.
-        Returns:
-            list: A list where each element is a dictionary representation of a message.
-        """
         return [message.to_dict() for message in self.messages[start:end]]

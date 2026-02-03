@@ -1,5 +1,3 @@
-# agent_core/agents/assistant_agent.py
-
 import time
 import json
 
@@ -40,6 +38,18 @@ class AssistantAgent(BaseAgent):
         name = tool_call.name
         args = json.loads(tool_call.arguments)
         self.log(f"Calling tool: {name}({args})")
+
+        # --- THIS IS THE NEW FIX ---
+        # The LLM may return coordinates as strings. We must convert them to floats.
+        coordinate_keys = ["lat_min", "lat_max", "lon_min", "lon_max", "latitude", "longitude"]
+        for key in coordinate_keys:
+            if key in args and isinstance(args[key], str):
+                try:
+                    args[key] = float(args[key])
+                except (ValueError, TypeError):
+                    self.log(f"Warning: Could not convert argument '{key}' with value '{args[key]}' to float.")
+                    pass
+        # -------------------------
 
         # call corresponding function with provided arguments
         start_time = time.time()
@@ -90,8 +100,13 @@ class AssistantAgent(BaseAgent):
 
             # === handle tool calls ===
             for tool_call in chat_response.tool_calls:
+                # Get the response message from the tool execution
                 tool_response = self.execute_tool_call(tool_call)
+                
+                # Set the tool_call_id on the response object so the API knows which call this result belongs to.
+                tool_response.tool_call_id = tool_call.id
+                
+                # Add the corrected message to the history
                 self.messages.add_message(tool_response)
 
         return chat_response
-

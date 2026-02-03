@@ -1,30 +1,32 @@
-# llm_clients/openai_client.py
-
+# It's a good practice to rename the file to groq_client.py, but for now, we'll just change the class.
 import time
-from openai import OpenAI
+from groq import Groq
 from llm_clients.base_client import BaseClient
 from agent_core.modules.messages import ChatResponseMessage, ToolCall, ToolCallRequestMessage
 
-class OpenAIClient(BaseClient):
-    client_class: str = "OpenAIClient"
+# CHANGE 1: Renamed the class for clarity.
+class GroqClient(BaseClient):
+    # CHANGE 2: Updated the client class name string.
+    client_class: str = "GroqClient"
 
     def __init__(self, model, temperature=0.1, api_key=None, **kwargs):
         """
-        Initialize the OpenAI client.
+        Initialize the Groq client.
 
         Args:
-            model (str): The model name (e.g., "gpt-4o-mini").
-            api_key (str, optional): Your OpenAI API key.
+            model (str): The model name (e.g., "llama3-70b-8192").
+            api_key (str, optional): Your Groq API key.
             **kwargs: Additional parameters.
         """
         super().__init__(model, temperature, **kwargs)
         self.api_key = api_key
-        self.api_client = OpenAI()
+        # CHANGE 3: Initialize the Groq client instead of OpenAI and pass the API key.
+        self.api_client = Groq(api_key=self.api_key)
 
     def get_response(self, messages, tools=None):
         """
         Send the conversation history (and tools, if provided) to 
-        OpenAI's API and return the response.
+        Groq's API and return the response.
 
         Args:
             messages (list): Conversation history.
@@ -61,7 +63,8 @@ class OpenAIClient(BaseClient):
             content=response.choices[0].message.content,
             message=response.choices[0].message,
             prompt_tokens=response.usage.prompt_tokens,
-            cached_tokens=response.usage.prompt_tokens_details.cached_tokens,
+            # CHANGE 4: The Groq API does not return 'cached_tokens'. Set it to 0 to avoid an error.
+            cached_tokens=0,
             completion_tokens=response.usage.completion_tokens,
             total_tokens=response.usage.total_tokens,
             time_elapsed=elapsed_time,

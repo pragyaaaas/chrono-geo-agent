@@ -19,6 +19,10 @@ def parse_date_flexible(date_input) -> str:
     Raises:
         ValueError: If the date cannot be parsed.
     """
+    # Handles both None and empty strings ('') by returning None.
+    if not date_input:
+        return None
+    
     # If it's already a datetime object (including pd.Timestamp), just format it.
     if isinstance(date_input, (datetime.datetime, pd.Timestamp)):
         return date_input.strftime("%Y-%m-%d")
@@ -30,14 +34,21 @@ def parse_date_flexible(date_input) -> str:
         raise ValueError(f"Unable to parse date input '{date_input}': {e}")
 
 def build_where_date_clause(start_date, end_date, date_column='date'):
+    """
+    Builds a SQL WHERE clause for a date range.
+    """
+    # First, parse the inputs. This will correctly handle empty strings and convert them to None.
+    parsed_start = parse_date_flexible(start_date)
+    parsed_end = parse_date_flexible(end_date)
 
-    start_date = '1900-01-01' if start_date is None else parse_date_flexible(start_date)
-    end_date = '3900-01-01' if end_date is None else  parse_date_flexible(end_date)
+    # Now, check if the result is None and apply the default date strings.
+    start_date_str = '1900-01-01' if parsed_start is None else parsed_start
+    end_date_str = '3900-01-01' if parsed_end is None else parsed_end
 
     # Convert to datetime objects and set the start time at midnight.
-    start_date_dt = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+    start_date_dt = datetime.datetime.strptime(start_date_str, "%Y-%m-%d")
     # For the end date, add one day (this handles month/year boundaries automatically).
-    end_date_dt = datetime.datetime.strptime(end_date, "%Y-%m-%d") + datetime.timedelta(days=1)
+    end_date_dt = datetime.datetime.strptime(end_date_str, "%Y-%m-%d") + datetime.timedelta(days=1)
 
     # Format the datetime objects to strings with time (e.g., "YYYY-MM-DD HH:MM:SS")
     start_date_formatted = start_date_dt.strftime("%Y-%m-%d %H:%M:%S")

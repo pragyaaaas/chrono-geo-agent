@@ -1,9 +1,13 @@
+# geoapps/geeo/vision.py
+
 import os
 import pandas as pd
 import datetime
 import geopandas as gpd
 from typing import Optional
 
+# --- ✅ 1. IMPORT THE DataManager ---
+from .data_manager import DataManager 
 
 from geoplatform.utils import build_where_date_clause
 from geoapps.geeo.constants import (
@@ -19,15 +23,17 @@ from agent_core.modules.toolset import agent_tool
 
 
 class Vision:
-    def __init__(self, database) -> None:
+    
+    # --- ✅ 2. UPDATE THE __init__ METHOD ---
+    def __init__(self, data_manager: DataManager) -> None:
         """
-        Initialize with Database object
+        Initialize with the DataManager object
         
         Args:
-            database (Database)
+            data_manager (DataManager)
         """
-        self.database = database
-        self.images_gdf = self.database.images_gdf
+        self.data_manager = data_manager # Use data_manager, not database
+        # self.images_gdf = self.database.images_gdf # <-- This line is removed
         self.detections_gdf = {}
         self.lcc_gdf = {}
         self.name = "vision"
@@ -36,19 +42,10 @@ class Vision:
         self.detections_gdf = {}
         self.lcc_gdf = {}
     
-    def _ingest_offline_labels(self, images_gdf, dataset) -> None:
+    def _ingest_offline_labels(self, images_gdf, dataset) -> gpd.GeoDataFrame:
         """
         Preload detections for the images of interest.
-        
-        Steps:
-            1. Extract the earliest and latest dates from self.images_gdf.
-            2. Build a where clause to query detections within that date range.
-            3. Load detections from labels (ground-truths precomputed offline).
-            4. Filter detections by image_id based on those in self.images_gdf.
-            6. Set self.gpkg_dets to the filtered detections.
-        
-        Returns:
-            None
+        (This internal method does not need changes as it receives the gdf)
         """
         # Extract date range from self.images_gdf and build WHERE clause  [start_date, end_date)
         where_clause = build_where_date_clause(
@@ -66,7 +63,6 @@ class Vision:
         valid_image_ids = set(images_gdf['image_id'].unique())
         _gpkg_labels = _gpkg_labels[_gpkg_labels['image_id'].isin(valid_image_ids)]
 
-        # print(set(_gpkg_dets['cat_name'].to_list()))
         return _gpkg_labels
 
     @agent_tool
@@ -77,15 +73,9 @@ class Vision:
     ) -> str:
         """
         Run detector on imagery.
-
-        Args:
-            dataset (str): The satellite imagery dataset to use.
-            detector_name (str): The detector model to use.
-
-        Returns:
-            str: A message indicating that detection has completed successfully.
         """
-        images_gdf_dict = self.database.images_gdf
+        # --- ✅ 3. UPDATE THIS LINE ---
+        images_gdf_dict = self.data_manager.images_gdf # Get data from data_manager
 
         if dataset not in DATASETS_INFO: 
             return DATASET_ERROR_MSG.format(dataset=dataset, datasets=list(DATASETS_INFO.keys()))
@@ -108,7 +98,7 @@ class Vision:
 
         # Save the filtered detections to self.detections_gdf
         if dataset not in self.detections_gdf: self.detections_gdf[dataset] = {}
-        self.detections_gdf[dataset][detector_name] = _gpkg_labels        
+        self.detections_gdf[dataset][detector_name] = _gpkg_labels          
 
         return f"Detection has successfully completed with model {detector_name} on {len(images_gdf)} {dataset} images."
 
@@ -121,15 +111,9 @@ class Vision:
     ) -> str:
         """
         Run LCC (land-coverage classification) model on imagery.
-
-        Args:
-            dataset (str): The satellite imagery dataset to use.
-            classifier_name (str): The classification model to use.
-
-        Returns:
-            str: A message indicating that classification has completed successfully.
         """
-        images_gdf_dict = self.database.images_gdf
+        # --- ✅ 4. UPDATE THIS LINE ---
+        images_gdf_dict = self.data_manager.images_gdf # Get data from data_manager
 
         if dataset not in DATASETS_INFO: 
             return DATASET_ERROR_MSG.format(dataset=dataset, datasets=list(DATASETS_INFO.keys()))
@@ -152,6 +136,6 @@ class Vision:
 
         # Save the filtered LCC results to self.lcc_gdf
         if dataset not in self.lcc_gdf: self.lcc_gdf[dataset] = {}
-        self.lcc_gdf[dataset][classifier_name] = _gpkg_labels       
+        self.lcc_gdf[dataset][classifier_name] = _gpkg_labels      
 
         return f"Land-cover classification has successfully completed with model {classifier_name} on {len(images_gdf)} {dataset} images."

@@ -1,4 +1,12 @@
-# main_agent.py
+# main.py
+# main.py
+import os
+from dotenv import load_dotenv
+
+load_dotenv() # This line loads variables from .env into your environment
+# ADD THIS IMPORT AT THE TOP OF YOUR FILE with the other imports
+from llm_clients.openai_client import GroqClient 
+# ---
 
 from agent_core.modules.messages import Messages, TextMessage
 from agent_core.agents.assistant_agent import AssistantAgent
@@ -17,11 +25,15 @@ from geoplatform.platform import Platform
 
 def main():
 
-    model_client = BaseClient.from_cfg({
-            "client": "openai",      # Options: "openai", "ollama", "vllm"
-            "model": "gpt-4o-mini",    # Model name, e.g., "gpt-4o-mini" or "llama3.3:70b" for ollama
-            "temperature": 0.1,        # Default temperature setting
-        })
+    # --- THIS IS THE BLOCK TO REPLACE ---
+    # Instead of the BaseClient.from_cfg({...}), we will create the GroqClient directly.
+    model_client = GroqClient(
+        model="meta-llama/llama-4-scout-17b-16e-instruct",  # Or any other Groq model
+        api_key=os.environ.get("GROQ_API_KEY"),
+        temperature=0.1
+    )
+    # ------------------------------------
+
     messages = Messages()
     database = Database()    
     vision = Vision(database)    

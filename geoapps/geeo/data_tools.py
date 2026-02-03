@@ -1,8 +1,14 @@
+# geoapps/geeo/data_tools.py
+
 import os
 import pandas as pd
 import datetime
 import geopandas as gpd
 from typing import Optional
+
+# --- ✅ 1. IMPORT THE DataManager AND Vision ---
+from .data_manager import DataManager
+from .vision import Vision 
 
 from geoplatform.utils import build_where_date_clause
 from geoapps.geeo.constants import (
@@ -19,8 +25,17 @@ from agent_core.modules.toolset import agent_tool
 
 
 class DataTools:
-    def __init__(self, database, vision):
-        self.database = database
+    
+    # --- ✅ 2. UPDATE THE __init__ METHOD ---
+    def __init__(self, data_manager: DataManager, vision: Vision):
+        """
+        Initialize with the DataManager and Vision toolset.
+        
+        Args:
+            data_manager (DataManager): The central data store.
+            vision (Vision): The vision toolset for accessing detection results.
+        """
+        self.data_manager = data_manager # Use DataManager
         self.vision = vision
         self.name = "data_tools"
 
@@ -42,7 +57,9 @@ class DataTools:
         Returns:
             str: A message indicating the number of filtered images.
         """
-        images_gdf_dict = self.database.images_gdf
+        # --- ✅ 3. UPDATE THIS LINE ---
+        images_gdf_dict = self.data_manager.images_gdf # Get data from DataManager
+
         if dataset not in DATASETS_INFO: 
             return DATASET_ERROR_MSG.format(dataset=dataset, datasets=list(DATASETS_INFO.keys()))
         if dataset not in images_gdf_dict: return IMGS_NONE_MSG
@@ -60,14 +77,7 @@ class DataTools:
     ) -> str:
         """
         Counts the number of detections for a particular category in a specified satellite dataset.
-
-        Args:
-            dataset (str): The name of the satellite dataset from which detections were derived.
-            detector_name (str): The name of the detection model used.
-            category_name (str): The specific object category class to count.
-
-        Returns:
-            str: A message indicating the number of detections found in the selected category.
+        (This function is correct as it relies on self.vision)
         """
         detections_gdf_dict = self.vision.detections_gdf
         if dataset not in DATASETS_INFO: 
@@ -101,14 +111,7 @@ class DataTools:
     ) -> str:
         """
         Count LCC classification results for a particular LCC category in a specified satellite dataset.
-
-        Args:
-            dataset (str): The satellite dataset from LCC results were derived.
-            classifier_name (str): The name of the LCC classifier used.
-            category_name (str): The specific category from LCC results to count.
-
-        Returns:
-            str: A message indicating the number of LCC classification results found in the selected category.
+        (This function is correct as it relies on self.vision)
         """
         lcc_gdf_dict = self.vision.lcc_gdf
         if dataset not in DATASETS_INFO: 
