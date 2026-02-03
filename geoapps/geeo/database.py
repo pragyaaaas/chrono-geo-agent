@@ -25,6 +25,8 @@ class Database:
     def _load_gpkg_images(self, dataset, start_date=None, end_date=None):
         where_clause = build_where_date_clause(start_date, end_date, DATASETS_INFO[dataset].get("images_date_column", "date"))
         gpkg_path = os.path.join(GPKG_FOLDER, DATASETS_INFO[dataset]["images_file"])
+        if not os.path.isfile(gpkg_path):
+            return gpd.GeoDataFrame()
         gpkg_layer = DATASETS_INFO[dataset]["images_layer"]
         return gpd.read_file(gpkg_path, layer=gpkg_layer, where=where_clause)
 

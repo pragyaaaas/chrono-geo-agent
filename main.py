@@ -12,6 +12,7 @@ from agent_core.modules.messages import Messages, TextMessage
 from agent_core.agents.assistant_agent import AssistantAgent
 from agent_core.teams.single_agent import SingleAgent
 
+from geoapps.geeo.data_manager import DataManager
 from geoapps.geeo.database import Database
 from geoapps.geeo.map_tools import MapTools
 from geoapps.geeo.data_tools import DataTools
@@ -35,10 +36,11 @@ def main():
     # ------------------------------------
 
     messages = Messages()
-    database = Database()    
-    vision = Vision(database)    
-    map_tools = MapTools(database, vision, map_style="open-street-map")
-    data_tools = DataTools(database, vision)
+    data_manager = DataManager()
+    database = Database(data_manager)
+    vision = Vision(data_manager)
+    map_tools = MapTools(data_manager, vision, map_style="open-street-map")
+    data_tools = DataTools(data_manager, vision)
     
     single_agent = SingleAgent(
         name="single_agent",
@@ -70,7 +72,7 @@ def main():
     response = platform.agent.run_query(query)
 
     print(response)
-    print(platform.database.images_gdf)
+    print(platform.database.data_manager.images_gdf)
     print(platform.vision.detections_gdf)
 
     # agent_run.add_task_result(AgentTask(queries=[query], rounds=[{"query": query, "messages": platform.messages.to_list_dict()}]))

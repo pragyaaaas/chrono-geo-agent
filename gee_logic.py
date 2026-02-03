@@ -3,13 +3,11 @@ import geemap
 import os
 
 # --- 1. Initialize GEE ---
-PROJECT_ID = 'gen-lang-client-0929113518' 
-
 try:
-    ee.Initialize(project=PROJECT_ID)
-except Exception as e:
+    ee.Initialize()
+except Exception:
     ee.Authenticate()
-    ee.Initialize(project=PROJECT_ID)
+    ee.Initialize()
 
 # --- 2. Helper Functions ---
 

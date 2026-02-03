@@ -13,9 +13,9 @@ from .vision import Vision
 from geoplatform.utils import build_where_date_clause
 from geoapps.geeo.constants import (
     DETS_NONE_MSG, DETS_EMPTY_MSG, DATASET_ERROR_MSG,
-    DATASETS_INFO, GPKG_FOLDER,  IMGS_NONE_MSG,
+    DATASETS_INFO, GPKG_FOLDER, IMGS_NONE_MSG, IMGS_EMPTY_MSG,
     DATASET_CATEGORY_ERROR_MSG, DATASETS_CATEGORIES,
-    LCC_NONE_MSG, LCC_EMPTY_MSG, 
+    LCC_NONE_MSG, LCC_EMPTY_MSG,
 )
 from geoapps.geeo.model_cards import (
     DETECTOR_MODELS, DETECTOR_MODEL_ERROR_MSG, DETECTOR_DATASET_ERROR_MSG,
